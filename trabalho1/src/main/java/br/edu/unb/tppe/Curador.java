@@ -10,11 +10,13 @@ public class Curador {
         if (registros == null) {
             return List.of();
         }
-        // Primeiro limpa acentos e grafia (Caso 1)
-        List<Registro> posGrafia = normalizarGrafia(registros);
-        
-        // Agora agrupa as iniciais (Caso 4) e retorna
-        return unificarIniciaisAgrupadas(posGrafia);
+
+        // TODO: verificar a ordem em que os métodos são chamados
+        List<Registro> resultado = normalizarGrafia(registros);
+        // Entendo que duplicação dos IDs DEVE SER A ÚLTIMA normalização
+        resultado = normalizarIdsDuplicados(resultado);
+
+        return resultado;
     }
 
     public String removerAcentos(String palavra){
@@ -136,5 +138,122 @@ public class Curador {
             }
         }
         return true;
+    public HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId){
+        HashMap<String, String> mapaMenorId = new HashMap<>();
+
+        for(String chave : mapaId.keySet()){
+            List<String> ids = mapaId.get(chave);
+            long menorId = Long.parseLong(ids.getFirst());
+            for(String idAtual : ids){
+                long idTemp = Long.parseLong(idAtual);
+                if(idTemp < menorId) menorId = idTemp;
+            }
+            String valor = String.valueOf(menorId);
+            mapaMenorId.computeIfAbsent(chave, k -> valor);
+        }
+
+        return  mapaMenorId;
+    }
+
+
+    // Caso 2: Sobrenome + Iniciais dos nomes
+   /*
+        Ocorre quando há variações na representação do nome do autor que combinam o sobrenome principal
+        com as iniciais dos prenomes (abreviações com ou sem pontos, ordenadas antes ou depois do sobrenome).
+        A unificação identifica a equivalência e adota o nome completo como o padrão-ouro.
+    */
+
+    public List<Registro> normalizarSobrenomeIniciais(List<Registro> registros) {
+        for (int i = 0; i < registros.size(); i++) {
+            for (int j = 0; j < registros.size(); j++) {
+                if (i != j) {
+                    Registro r1 = registros.get(i);
+                    Registro r2 = registros.get(j);
+                    
+                    // Compara apenas se r1 for maior que r2 (r1 = potencial nome completo)
+                    if (r1.getNome().length() > r2.getNome().length()) {
+                        if (ehAbreviacao(r1.getNome(), r2.getNome())) {
+                            // Se for abreviação, padroniza r2 com o nome de r1
+                            r2.setNome(r1.getNome());
+                        }
+                    }
+                }
+            }
+        }
+        return registros.stream().distinct().toList();
+    }
+
+    private boolean ehAbreviacao(String nomeCompleto, String nomeAbreviado) {
+        // Limpa e prepara o nome longo (remove acentos e partículas comuns)
+        String nLongo = removerAcentos(nomeCompleto).toUpperCase()
+                .replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").trim();
+        nLongo = nLongo.replaceAll("\\s+", " "); // Normaliza espaços
+        
+        // Limpa e prepara o nome curto (remove acentos, pontos e espaços para facilitar match exato)
+        String nCurto = removerAcentos(nomeAbreviado).toUpperCase()
+                .replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "")
+                .replace(".", "").replaceAll("\\s+", "");
+
+        String[] partes = nLongo.split(" ");
+        if (partes.length < 2) return false;
+
+        // O último termo é tratado como o sobrenome principal
+        String sobrenome = partes[partes.length - 1];
+        
+        // Extrai a primeira letra dos demais nomes
+        StringBuilder iniciais = new StringBuilder();
+        for (int i = 0; i < partes.length - 1; i++) {
+            iniciais.append(partes[i].charAt(0));
+        }
+
+        // Monta os dois padrões possíveis sem espaços: "SOBRENOME + INICIAIS" ou "INICIAIS + SOBRENOME"
+        String padrao1 = sobrenome + iniciais.toString();
+        String padrao2 = iniciais.toString() + sobrenome;
+
+        return nCurto.equals(padrao1) || nCurto.equals(padrao2);
+    }
+
+    public HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId){
+        HashMap<String, String> mapaMenorId = new HashMap<>();
+
+        for(String chave : mapaId.keySet()){
+            List<String> ids = mapaId.get(chave);
+            long menorId = Long.parseLong(ids.getFirst());
+            for(String idAtual : ids){
+                long idTemp = Long.parseLong(idAtual);
+                if(idTemp < menorId) menorId = idTemp;
+            }
+            String valor = String.valueOf(menorId);
+            mapaMenorId.computeIfAbsent(chave, k -> valor);
+        }
+
+        return  mapaMenorId;
+    }
+
+
+    // Caso 5: IDs diferentes para o mesmo autor
+    /*
+        Por fim, devido às diversas fontes de dados, os registros de publicação e autorias
+        duplicados, sendo um registro para cada fonte. Nesses casos, todos os registros
+        ser mapeados para o mesmo id, sendo o id de menor valor eleito para ser utilizado
+        deduplicação
+    */
+    public List<Registro> normalizarIdsDuplicados(List<Registro> registros){
+        // criando um mapa de (nome, lista<ids>)
+        HashMap<String, List<String>> mapaId = new HashMap<>();
+        for(Registro r : registros){
+            String nome = r.getNome();
+            mapaId.computeIfAbsent(nome, k -> new ArrayList<>()).add(r.getId());
+        }
+
+        // atribui o menor id para cada registro de uma mesma pessoa
+        HashMap<String, String> mapaMenorId = mapearMenorId(mapaId);
+        for(Registro r : registros){
+            String chave = r.getNome();
+            String menorId = mapaMenorId.get(chave);
+            r.setId(menorId);
+        }
+
+        return registros.stream().distinct().toList();
     }
 }
