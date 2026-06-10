@@ -33,7 +33,7 @@ public class Curador {
     /*
         acontece quando há diferença na codificação utilizada ou na grafia dos nomes. São exemplos desses erros
         presença/ausência de acentuação no mesmo caractere em registros diferentes, uso de acentuação diferente
-        representar o mesmo item (apóstrofo, crase ou acento agudo), presenca / ausencia de cedilha ou acentuação,
+        representar o mesmo item (apóstrofo, crase ou acento agudo), presença / ausência de cedilha ou acentuação,
         vários outros.
     */
     public List<Registro> normalizarGrafia(List<Registro> registros){
