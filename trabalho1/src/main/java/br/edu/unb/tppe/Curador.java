@@ -10,7 +10,13 @@ public class Curador {
         if (registros == null) {
             return List.of();
         }
-        return normalizarGrafia(registros);
+
+        // TODO: verificar a ordem em que os métodos são chamados
+        List<Registro> resultado = normalizarGrafia(registros);
+        // Entendo que duplicação dos IDs DEVE SER A ÚLTIMA normalização
+        resultado = normalizarIdsDuplicados(resultado);
+
+        return resultado;
     }
 
     public String removerAcentos(String palavra){
@@ -64,5 +70,48 @@ public class Curador {
         return registros.stream().
                 distinct().
                 toList();
+    }
+
+    public HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId){
+        HashMap<String, String> mapaMenorId = new HashMap<>();
+
+        for(String chave : mapaId.keySet()){
+            List<String> ids = mapaId.get(chave);
+            long menorId = Long.parseLong(ids.getFirst());
+            for(String idAtual : ids){
+                long idTemp = Long.parseLong(idAtual);
+                if(idTemp < menorId) menorId = idTemp;
+            }
+            String valor = String.valueOf(menorId);
+            mapaMenorId.computeIfAbsent(chave, k -> valor);
+        }
+
+        return  mapaMenorId;
+    }
+
+    // Caso 2
+    /*
+        Por fim, devido às diversas fontes de dados, os registros de publicação e autorias
+        duplicados, sendo um registro para cada fonte. Nesses casos, todos os registros
+        ser mapeados para o mesmo id, sendo o id de menor valor eleito para ser utilizado
+        deduplicação
+    */
+    public List<Registro> normalizarIdsDuplicados(List<Registro> registros){
+        // criando um mapa de (nome, lista<ids>)
+        HashMap<String, List<String>> mapaId = new HashMap<>();
+        for(Registro r : registros){
+            String nome = r.getNome();
+            mapaId.computeIfAbsent(nome, k -> new ArrayList<>()).add(r.getId());
+        }
+
+        // atribui o menor id para cada registro de uma mesma pessoa
+        HashMap<String, String> mapaMenorId = mapearMenorId(mapaId);
+        for(Registro r : registros){
+            String chave = r.getNome();
+            String menorId = mapaMenorId.get(chave);
+            r.setId(menorId);
+        }
+
+        return registros.stream().distinct().toList();
     }
 }
