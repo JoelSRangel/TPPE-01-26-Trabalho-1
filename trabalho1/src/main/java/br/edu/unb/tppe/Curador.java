@@ -15,7 +15,14 @@ public class Curador {
 
     public String removerAcentos(String palavra){
         String resultado = palavra.replaceAll("[´`’]", "'");
-        return Normalizer.normalize(resultado, Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
+        resultado = Normalizer.normalize(resultado, Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
+        
+        // Caso 3: remover pontos e partículas
+        resultado = resultado.replaceAll("\\.", "");
+        resultado = resultado.replaceAll("(?i)\\b(de|do|da|dos|das)\\b", "");
+        resultado = resultado.replaceAll("\\s+", " ").trim();
+        
+        return resultado;
     }
 
     public String definirNomeCorreto(List<String> nomes){
