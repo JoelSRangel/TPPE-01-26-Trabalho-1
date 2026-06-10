@@ -11,9 +11,16 @@ public class Curador {
             return List.of();
         }
 
-        // TODO: verificar a ordem em que os métodos são chamados
+        // Caso 1 e Caso 3 básicos
         List<Registro> resultado = normalizarGrafia(registros);
-        // Entendo que duplicação dos IDs DEVE SER A ÚLTIMA normalização
+        
+        // Caso 2: Sobrenome + Iniciais (Ex: Seabra A.M. -> Ana de Mattos Seabra)
+        resultado = normalizarSobrenomeIniciais(resultado);
+
+        // Caso 4: Iniciais Agrupadas (Ex: VC Junior -> Vanilda Cristina Junior)
+        resultado = unificarIniciaisAgrupadas(resultado);
+        
+        // Caso 5: IDs Duplicados
         resultado = normalizarIdsDuplicados(resultado);
 
         return resultado;
@@ -80,89 +87,6 @@ public class Curador {
         return registros.stream().
                 distinct().
                 toList();
-    }
-
-
-    // Caso 4
-    
-    public List<Registro> unificarIniciaisAgrupadas(List<Registro> registros) {
-        List<Registro> resultado = new ArrayList<>();
-
-        for (Registro atual : registros) {
-            boolean duplicado = false;
-
-            for (int i = 0; i < resultado.size(); i++) {
-                Registro salvo = resultado.get(i);
-
-                if (saoMesmaPessoaIniciais(atual.getNome(), salvo.getNome())) {
-                    duplicado = true;
-                    // Padrão-Ouro: mantém o nome mais longo (mais completo)
-                    if (atual.getNome().length() > salvo.getNome().length()) {
-                        resultado.set(i, atual);
-                    }
-                    break;
-                }
-            }
-
-            if (!duplicado) {
-                resultado.add(atual);
-            }
-        }
-        return resultado;
-    }
-
-    private boolean saoMesmaPessoaIniciais(String nomeA, String nomeB) {
-        // Usa o método que você já criou para tirar os acentos e padronizar as caixas
-        String nA = removerAcentos(nomeA).toUpperCase().trim();
-        String nB = removerAcentos(nomeB).toUpperCase().trim();
-
-        String[] partesA = nA.split("\\s+");
-        String[] partesB = nB.split("\\s+");
-
-        if (partesA.length < 2 || partesB.length < 2) return false;
-
-        // Valida se o último sobrenome bate (ex: GUARALDI == GUARALDI)
-        String sobrenomeA = partesA[partesA.length - 1];
-        String sobrenomeB = partesB[partesB.length - 1];
-        if (!sobrenomeA.equals(sobrenomeB)) return false;
-
-        // Se a primeira string for o bloco de iniciais (ex: "VC") compara com o nome B
-        if (partesA.length == 2 && partesA[0].length() > 1) {
-            return checarIniciaisDoNome(partesA[0], partesB);
-        }
-        // Se a segunda string for o bloco de iniciais (ex: "SH") compara com o nome A
-        if (partesB.length == 2 && partesB[0].length() > 1) {
-            return checarIniciaisDoNome(partesB[0], partesA);
-        }
-
-        return false;
-    }
-
-    private boolean checarIniciaisDoNome(String blocoIniciais, String[] nomeCompleto) {
-        // O bloco de iniciais precisa ter o mesmo tamanho da quantidade de prenomes disponíveis
-        if (blocoIniciais.length() != nomeCompleto.length - 1) return false;
-
-        for (int i = 0; i < blocoIniciais.length(); i++) {
-            if (blocoIniciais.charAt(i) != nomeCompleto[i].charAt(0)) {
-                return false;
-            }
-        }
-        return true;
-    public HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId){
-        HashMap<String, String> mapaMenorId = new HashMap<>();
-
-        for(String chave : mapaId.keySet()){
-            List<String> ids = mapaId.get(chave);
-            long menorId = Long.parseLong(ids.getFirst());
-            for(String idAtual : ids){
-                long idTemp = Long.parseLong(idAtual);
-                if(idTemp < menorId) menorId = idTemp;
-            }
-            String valor = String.valueOf(menorId);
-            mapaMenorId.computeIfAbsent(chave, k -> valor);
-        }
-
-        return  mapaMenorId;
     }
 
 
@@ -240,6 +164,68 @@ public class Curador {
         return  mapaMenorId;
     }
 
+
+    // Caso 4
+    /* Há casos em que as iniciais do nome e dos primeiros sobrenomes são agrupadas restando por extenso apenas o último nome
+    a versão completa do nome deve ser preferida em relação à versão com abreviações. */
+    public List<Registro> unificarIniciaisAgrupadas(List<Registro> registros) {
+        List<Registro> resultado = new ArrayList<>();
+
+        for (Registro atual : registros) {
+            boolean duplicado = false;
+
+            for (int i = 0; i < resultado.size(); i++) {
+                Registro salvo = resultado.get(i);
+
+                if (saoMesmaPessoaIniciais(atual.getNome(), salvo.getNome())) {
+                    duplicado = true;
+                    if (atual.getNome().length() > salvo.getNome().length()) {
+                        resultado.set(i, atual);
+                    }
+                    break;
+                }
+            }
+
+            if (!duplicado) {
+                resultado.add(atual);
+            }
+        }
+        return resultado;
+    }
+
+    private boolean saoMesmaPessoaIniciais(String nomeA, String nomeB) {
+        String nA = removerAcentos(nomeA).toUpperCase().replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").replaceAll("\\s+", " ").trim();
+        String nB = removerAcentos(nomeB).toUpperCase().replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").replaceAll("\\s+", " ").trim();
+
+        String[] partesA = nA.split("\\s+");
+        String[] partesB = nB.split("\\s+");
+
+        if (partesA.length < 2 || partesB.length < 2) return false;
+
+        String sobrenomeA = partesA[partesA.length - 1];
+        String sobrenomeB = partesB[partesB.length - 1];
+        if (!sobrenomeA.equals(sobrenomeB)) return false;
+
+        if (partesA.length == 2 && partesA[0].length() > 1) {
+            return checarIniciaisDoNome(partesA[0], partesB);
+        }
+        if (partesB.length == 2 && partesB[0].length() > 1) {
+            return checarIniciaisDoNome(partesB[0], partesA);
+        }
+
+        return false;
+    }
+
+    private boolean checarIniciaisDoNome(String blocoIniciais, String[] nomeCompleto) {
+        if (blocoIniciais.length() != nomeCompleto.length - 1) return false;
+
+        for (int i = 0; i < blocoIniciais.length(); i++) {
+            if (blocoIniciais.charAt(i) != nomeCompleto[i].charAt(0)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     // Caso 5: IDs diferentes para o mesmo autor
     /*
