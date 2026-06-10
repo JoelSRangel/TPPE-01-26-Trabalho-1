@@ -72,6 +72,72 @@ public class Curador {
                 toList();
     }
 
+
+    // Caso 4
+    
+    public List<Registro> unificarIniciaisAgrupadas(List<Registro> registros) {
+        List<Registro> resultado = new ArrayList<>();
+
+        for (Registro atual : registros) {
+            boolean duplicado = false;
+
+            for (int i = 0; i < resultado.size(); i++) {
+                Registro salvo = resultado.get(i);
+
+                if (saoMesmaPessoaIniciais(atual.getNome(), salvo.getNome())) {
+                    duplicado = true;
+                    // Padrão-Ouro: mantém o nome mais longo (mais completo)
+                    if (atual.getNome().length() > salvo.getNome().length()) {
+                        resultado.set(i, atual);
+                    }
+                    break;
+                }
+            }
+
+            if (!duplicado) {
+                resultado.add(atual);
+            }
+        }
+        return resultado;
+    }
+
+    private boolean saoMesmaPessoaIniciais(String nomeA, String nomeB) {
+        // Usa o método que você já criou para tirar os acentos e padronizar as caixas
+        String nA = removerAcentos(nomeA).toUpperCase().trim();
+        String nB = removerAcentos(nomeB).toUpperCase().trim();
+
+        String[] partesA = nA.split("\\s+");
+        String[] partesB = nB.split("\\s+");
+
+        if (partesA.length < 2 || partesB.length < 2) return false;
+
+        // Valida se o último sobrenome bate (ex: GUARALDI == GUARALDI)
+        String sobrenomeA = partesA[partesA.length - 1];
+        String sobrenomeB = partesB[partesB.length - 1];
+        if (!sobrenomeA.equals(sobrenomeB)) return false;
+
+        // Se a primeira string for o bloco de iniciais (ex: "VC") compara com o nome B
+        if (partesA.length == 2 && partesA[0].length() > 1) {
+            return checarIniciaisDoNome(partesA[0], partesB);
+        }
+        // Se a segunda string for o bloco de iniciais (ex: "SH") compara com o nome A
+        if (partesB.length == 2 && partesB[0].length() > 1) {
+            return checarIniciaisDoNome(partesB[0], partesA);
+        }
+
+        return false;
+    }
+
+    private boolean checarIniciaisDoNome(String blocoIniciais, String[] nomeCompleto) {
+        // O bloco de iniciais precisa ter o mesmo tamanho da quantidade de prenomes disponíveis
+        if (blocoIniciais.length() != nomeCompleto.length - 1) return false;
+
+        for (int i = 0; i < blocoIniciais.length(); i++) {
+            if (blocoIniciais.charAt(i) != nomeCompleto[i].charAt(0)) {
+                return false;
+            }
+        }
+        return true;
     public HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId){
         HashMap<String, String> mapaMenorId = new HashMap<>();
 
