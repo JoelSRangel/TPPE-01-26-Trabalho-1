@@ -48,24 +48,27 @@ public class Curador {
         HashMap<String, List<String>> mapaNomes = new HashMap<>();
 
         HashMap<String, String> mapaNomesCorretos = new HashMap<>();
+        HashMap<String, String> mapaIdsCorretos = new HashMap<>();
 
-        // criando o mapa com as variações dos nomes
+        // criando o mapa com as variações dos nomes e guardando um ID de referência
         for(Registro r : registros){
             String nome = r.getNome();
             String nomeLimpo = removerAcentos(nome);
             mapaNomes.computeIfAbsent(nomeLimpo, k -> new ArrayList<>()).add(nome);
+            mapaIdsCorretos.putIfAbsent(nomeLimpo, r.getId());
         }
 
         // escolhendo os nomes corretos entre as variações possíveis
         for(String chave : mapaNomes.keySet()){
             String nomeCorreto = definirNomeCorreto(mapaNomes.get(chave));
-            mapaNomesCorretos.computeIfAbsent(chave, k -> nomeCorreto);
+            mapaNomesCorretos.put(chave, nomeCorreto);
         }
 
-        // corrigindo os nomes para cada registro
+        // corrigindo os nomes e IDs para cada registro para permitir a unificação
         for(Registro r : registros){
             String nomeLimpo = removerAcentos(r.getNome());
             r.setNome(mapaNomesCorretos.get(nomeLimpo));
+            r.setId(mapaIdsCorretos.get(nomeLimpo));
         }
 
         return registros.stream().
