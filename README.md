@@ -6,7 +6,7 @@ FCTE - Faculdade de Ciencias e Tecnologias em Engenharias
 TPPE - Técnicas de Programação para Plataformas Emergentes  
 ---
 
-## 🛠️ Tecnologias e Ferramentas Utilizadas
+##  Tecnologias e Ferramentas Utilizadas
 
 O projeto foi construído utilizando o ecossistema moderno da linguagem **Java**:
 
@@ -17,7 +17,7 @@ O projeto foi construído utilizando o ecossistema moderno da linguagem **Java**
 
 ---
 
-## 🚀 Como Executar o Código e os Testes
+##  Como Executar o Código e os Testes
 
 Como o projeto utiliza o Apache Maven, todos os ciclos de compilação, gerenciamento de bibliotecas e execução de testes automatizados são centralizados em comandos simples no terminal.
 
