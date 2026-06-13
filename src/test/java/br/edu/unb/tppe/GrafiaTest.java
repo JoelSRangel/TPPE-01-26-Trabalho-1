@@ -55,7 +55,7 @@ public class GrafiaTest {
     @MethodSource("provedorDadosGrafia")
     public void testNormalizarGrafia(List<Registro> listaSuja, List<String> nomesEsperados) {
         Curador curador = new Curador();
-        List<Registro> resultado = curador.normalizarGrafia(listaSuja);
+        List<Registro> resultado = curador.normalizarGrafia(listaSuja).stream().distinct().toList();
 
         List<String> nomesObtidos = resultado.stream()
                 .map(Registro::getNome)

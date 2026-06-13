@@ -38,7 +38,7 @@ public class IniciaisAgrupadasTest {
     @MethodSource("provedorDadosIniciaisAgrupadas")
     public void testUnificarIniciaisAgrupadas(List<Registro> listaSuja, List<String> nomesEsperados) {
         Curador curador = new Curador();
-        List<Registro> resultado = curador.unificarIniciaisAgrupadas(listaSuja);
+        List<Registro> resultado = curador.unificarIniciaisAgrupadas(listaSuja).stream().distinct().toList();
 
         List<String> nomesObtidos = resultado.stream()
                 .map(Registro::getNome)

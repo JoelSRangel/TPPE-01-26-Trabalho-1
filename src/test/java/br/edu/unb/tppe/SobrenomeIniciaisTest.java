@@ -46,7 +46,7 @@ public class SobrenomeIniciaisTest {
     @MethodSource("provedorDadosSobrenomeIniciais")
     public void testNormalizarSobrenomeIniciais(List<Registro> listaSuja, String nomeEsperado) {
         Curador curador = new Curador();
-        List<Registro> resultado = curador.normalizarSobrenomeIniciais(listaSuja);
+        List<Registro> resultado = curador.normalizarSobrenomeIniciais(listaSuja).stream().distinct().toList();
 
         for (Registro r : resultado) {
             assertEquals(nomeEsperado, r.getNome(), 

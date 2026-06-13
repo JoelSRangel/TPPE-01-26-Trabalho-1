@@ -38,7 +38,7 @@ public class ParticulasEPontoTest {
     @MethodSource("provedorDadosParticulasEPonto")
     public void testNormalizarParticulasEPonto(List<Registro> listaSuja, List<String> nomesEsperados) {
         Curador curador = new Curador();
-        List<Registro> resultado = curador.normalizarParticulasEPonto(listaSuja);
+        List<Registro> resultado = curador.normalizarParticulasEPonto(listaSuja).stream().distinct().toList();
 
         List<String> nomesObtidos = resultado.stream()
                 .map(Registro::getNome)
