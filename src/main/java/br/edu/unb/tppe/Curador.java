@@ -30,7 +30,6 @@ public class Curador {
         String resultado = palavra.replaceAll("[´`’]", "'");
         resultado = Normalizer.normalize(resultado, Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
         
-        // Caso 3: remover pontos e partículas
         resultado = resultado.replaceAll("\\.", "");
         resultado = resultado.replaceAll("(?i)\\b(de|do|da|dos|das)\\b", "");
         resultado = resultado.replaceAll("\\s+", " ").trim();
@@ -123,7 +122,7 @@ public class Curador {
                 .replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").trim();
         nLongo = nLongo.replaceAll("\\s+", " "); // Normaliza espaços
         
-        // Limpa e prepara o nome curto (remove acentos, pontos e espaços para facilitar match exato)
+        // remove acentos, pontos e espaços
         String nCurto = removerAcentos(nomeAbreviado).toUpperCase()
                 .replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "")
                 .replace(".", "").replaceAll("\\s+", "");
@@ -140,7 +139,7 @@ public class Curador {
             iniciais.append(partes[i].charAt(0));
         }
 
-        // Monta os dois padrões possíveis sem espaços: "SOBRENOME + INICIAIS" ou "INICIAIS + SOBRENOME"
+        // Monta os padrões possíveis sem espaços: "SOBRENOME + INICIAIS" ou "INICIAIS + SOBRENOME"
         String padrao1 = sobrenome + iniciais.toString();
         String padrao2 = iniciais.toString() + sobrenome;
 
@@ -166,8 +165,11 @@ public class Curador {
 
 
     // Caso 4
-    /* Há casos em que as iniciais do nome e dos primeiros sobrenomes são agrupadas restando por extenso apenas o último nome
-    a versão completa do nome deve ser preferida em relação à versão com abreviações. */
+    /* 
+        Há casos em que as iniciais do nome e dos primeiros sobrenomes são agrupadas restando
+        por extenso apenas o último nome a versão completa do nome deve ser preferida
+        em relação à versão com abreviações.
+    */
     public List<Registro> unificarIniciaisAgrupadas(List<Registro> registros) {
         List<Registro> resultado = new ArrayList<>();
 

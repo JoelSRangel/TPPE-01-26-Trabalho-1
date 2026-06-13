@@ -2,3 +2,5 @@
 /.idea
 /trabalho1/.idea
 /trabalho1/target
+/target
+/target/surefire-reports
