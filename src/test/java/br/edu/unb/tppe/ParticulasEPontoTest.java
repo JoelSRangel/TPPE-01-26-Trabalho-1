@@ -1,33 +1,50 @@
 package br.edu.unb.tppe;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.util.List;
+import java.util.stream.Stream;
+
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("Caso3")
 public class ParticulasEPontoTest {
 
-    @Test
-    public void testUnificacaoParticulasEPontos() {
+    private static Stream<Arguments> provedorDadosParticulasEPonto() {
+        return Stream.of(
+            // Conjunto 1: Focado em Partículas (Exemplo do enunciado)
+            Arguments.of(
+                List.of(
+                    new Registro("746937", "Luiz de Oliveira de Souza"),
+                    new Registro("608296", "Luiz Oliveira Souza")
+                ),
+                List.of("Luiz de Oliveira de Souza")
+            ),
+            // Conjunto 2: Focado em Pontos e partículas (Exemplo do enunciado)
+            Arguments.of(
+                List.of(
+                    new Registro("549242", "Luiz de O. de Souza"),
+                    new Registro("549242", "Luiz de O de Souza")
+                ),
+                List.of("Luiz de O. de Souza")
+            )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provedorDadosParticulasEPonto")
+    public void testNormalizarParticulasEPonto(List<Registro> listaSuja, List<String> nomesEsperados) {
         Curador curador = new Curador();
-        
-        // Conjunto de Dados 1: Focado em Partículas (Exemplo do enunciado)
-        Registro r1 = new Registro("746937", "Luiz de Oliveira de Souza");
-        Registro r2 = new Registro("608296", "Luiz Oliveira Souza");
-        
-        List<Registro> lista1 = List.of(r1, r2);
-        List<Registro> resultado1 = curador.processarEUnificar(lista1);
+        List<Registro> resultado = curador.normalizarParticulasEPonto(listaSuja);
 
-        assertEquals(1, resultado1.size(), "Deveria unificar nomes com e sem partículas.");
-        assertEquals("Luiz de Oliveira de Souza", resultado1.get(0).getNome());
+        List<String> nomesObtidos = resultado.stream()
+                .map(Registro::getNome)
+                .toList();
 
-        // Conjunto de Dados 2: Focado em Pontos (Exemplo do enunciado)
-        Registro r3 = new Registro("549242", "Luiz de O. de Souza");
-        Registro r4 = new Registro("549242", "Luiz de O de Souza");
-        
-        List<Registro> lista2 = List.of(r3, r4);
-        List<Registro> resultado2 = curador.processarEUnificar(lista2);
-
-        assertEquals(1, resultado2.size(), "Deveria unificar nomes com e sem ponto na abreviação.");
-        assertTrue(resultado2.get(0).getNome().contains("O."));
+        assertEquals(nomesEsperados.size(), resultado.size(), "O número de registros unificados está incorreto.");
+        assertTrue(nomesObtidos.containsAll(nomesEsperados), "A lista de nomes obtidos não contém todos os nomes esperados.");
     }
 }

@@ -37,6 +37,16 @@ public class GrafiaTest {
                 List.of(
                     "Lílian Luíza Viana Vieira"
                 )
+            ),
+            // Conjunto 3: Caso de registros idênticos (Yuri Vieira Faria)
+            Arguments.of(
+                List.of(
+                    new Registro("713897", "Yuri Vieira Faria"),
+                    new Registro("713897", "Yuri Vieira Faria")
+                ),
+                List.of(
+                    "Yuri Vieira Faria"
+                )
             )
         );
     }
