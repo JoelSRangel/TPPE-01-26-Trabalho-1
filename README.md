@@ -31,7 +31,7 @@ Certifique-se de ter o **JDK 17 ou superior** (preferencialmente o Java 21) e o 
 ### 1. Clonar o Repositório e Acessar a Pasta do Projeto
 ``` bash
 git clone [https://github.com/JoelSRangel/TPPE-01-26-Trabalho-1.git](https://github.com/JoelSRangel/TPPE-01-26-Trabalho-1.git)
-cd TPPE-01-26-Trabalho-1/trabalho1
+cd TPPE-01-26-Trabalho-1
 ```
 
 ### 2. Executar os Testes Automatizados
