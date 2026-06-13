@@ -9,7 +9,8 @@ import org.junit.platform.suite.api.Suite;
         SobrenomeIniciaisTest.class,
         ParticulasEPontoTest.class,
         IniciaisAgrupadasTest.class,
-        IdsDuplicadosTest.class
+        IdsDuplicadosTest.class,
+        TabelaEnunciadoTest.class
 })
 public class CuradoriaSuite {
 
