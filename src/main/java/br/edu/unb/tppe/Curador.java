@@ -6,97 +6,116 @@ import java.util.List;
 import java.text.Normalizer;
 
 public class Curador {
+    /**
+     * Executa o fluxo completo de curadoria e unificação dos registros,
+     * passando por todas as etapas de normalização (Grafia, Partículas/Pontos,
+     * Iniciais de Sobrenomes, Iniciais Agrupadas e IDs Duplicados).
+     *
+     * @param registros A lista de registros a ser processada.
+     * @return Uma lista de registros unificada e livre de duplicatas.
+     */
     public List<Registro> processarEUnificar(List<Registro> registros) {
         if (registros == null) {
             return List.of();
         }
 
-        // Caso 1 e Caso 3 básicos
         List<Registro> resultado = normalizarGrafia(registros);
-        
-        // Caso 2: Sobrenome + Iniciais (Ex: Seabra A.M. -> Ana de Mattos Seabra)
+        resultado = normalizarParticulasEPonto(resultado);
         resultado = normalizarSobrenomeIniciais(resultado);
-
-        // Caso 4: Iniciais Agrupadas (Ex: VC Junior -> Vanilda Cristina Junior)
         resultado = unificarIniciaisAgrupadas(resultado);
-        
-        // Caso 5: IDs Duplicados
         resultado = normalizarIdsDuplicados(resultado);
 
         return resultado;
     }
 
-    public String removerAcentos(String palavra){
-        String resultado = palavra.replaceAll("[´`’]", "'");
-        resultado = Normalizer.normalize(resultado, Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
-        
-        resultado = resultado.replaceAll("\\.", "");
-        resultado = resultado.replaceAll("(?i)\\b(de|do|da|dos|das)\\b", "");
-        resultado = resultado.replaceAll("\\s+", " ").trim();
-        
-        return resultado;
+    /**
+     * Caso 1: Normaliza diferenças de grafia, acentuação e caracteres especiais.
+     * Compara os pares de registros e adota a grafia mais completa para nomes equivalentes.
+     *
+     * @param registros A lista de registros.
+     * @return A lista de registros com a grafia unificada (sem deduplicação).
+     */
+    public List<Registro> normalizarGrafia(List<Registro> registros) {
+        for (Registro r : registros) {
+            r.setNome(padronizarNomeBasico(r.getNome()));
+        }
+
+        for (int i = 0; i < registros.size(); i++) {
+            for (int j = 0; j < registros.size(); j++) {
+                if (i != j) {
+                    Registro r1 = registros.get(i);
+                    Registro r2 = registros.get(j);
+
+                    int len1 = Normalizer.normalize(r1.getNome(), Normalizer.Form.NFKD).length();
+                    int len2 = Normalizer.normalize(r2.getNome(), Normalizer.Form.NFKD).length();
+
+                    // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
+                    if (len1 > len2 || (len1 == len2 && i < j)) {
+                        if (saoMesmaGrafia(r1.getNome(), r2.getNome())) {
+                            r2.setNome(r1.getNome());
+                            
+                            // Adota o menor ID entre os dois registros para preservar o menor ID
+                            String menorId = obterMenorId(r1.getId(), r2.getId());
+                            r1.setId(menorId);
+                            r2.setId(menorId);
+                        }
+                    }
+                }
+            }
+        }
+        return registros;
     }
 
-    public String definirNomeCorreto(List<String> nomes){
-        // Considero que o nome correto é aquele que tem a maior quantidade de caracteres, pois é o mais completo.
-        String maiorNome = "";
-        for(String n : nomes){
-            String nomeNormalizado = Normalizer.normalize(n, Normalizer.Form.NFKD);
-            if(nomeNormalizado.length() > maiorNome.length()) maiorNome = n;
+    /**
+     * Caso 3: Unifica nomes com e sem partículas de ligação (de, do, da, etc.)
+     * e com/sem pontos nas iniciais de abreviações.
+     *
+     * @param registros A lista de registros.
+     * @return A lista de registros com partículas e abreviações com ponto normalizadas (sem deduplicação).
+     */
+    public List<Registro> normalizarParticulasEPonto(List<Registro> registros) {
+        for (Registro r : registros) {
+            r.setNome(padronizarNomeBasico(r.getNome()));
         }
 
-        return maiorNome.replaceAll("[´`’]", "'");
+        for (int i = 0; i < registros.size(); i++) {
+            for (int j = 0; j < registros.size(); j++) {
+                if (i != j) {
+                    Registro r1 = registros.get(i);
+                    Registro r2 = registros.get(j);
+
+                    int len1 = Normalizer.normalize(r1.getNome(), Normalizer.Form.NFKD).length();
+                    int len2 = Normalizer.normalize(r2.getNome(), Normalizer.Form.NFKD).length();
+
+                    // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
+                    if (len1 > len2 || (len1 == len2 && i < j)) {
+                        if (saoMesmoNomeSemParticulas(r1.getNome(), r2.getNome())) {
+                            r2.setNome(r1.getNome());
+
+                            // Adota o menor ID entre os dois registros para preservar o menor ID
+                            String menorId = obterMenorId(r1.getId(), r2.getId());
+                            r1.setId(menorId);
+                            r2.setId(menorId);
+                        }
+                    }
+                }
+            }
+        }
+        return registros;
     }
 
-    // Caso 1
-    /*
-        acontece quando há diferença na codificação utilizada ou na grafia dos nomes. São exemplos desses erros
-        presença/ausência de acentuação no mesmo caractere em registros diferentes, uso de acentuação diferente
-        representar o mesmo item (apóstrofo, crase ou acento agudo), presença / ausência de cedilha ou acentuação,
-        vários outros.
-    */
-    public List<Registro> normalizarGrafia(List<Registro> registros){
-        // conjunto de todas as variações possíveis para um nome
-        HashMap<String, List<String>> mapaNomes = new HashMap<>();
-
-        HashMap<String, String> mapaNomesCorretos = new HashMap<>();
-        HashMap<String, String> mapaIdsCorretos = new HashMap<>();
-
-        // criando o mapa com as variações dos nomes e guardando um ID de referência
-        for(Registro r : registros){
-            String nome = r.getNome();
-            String nomeLimpo = removerAcentos(nome);
-            mapaNomes.computeIfAbsent(nomeLimpo, k -> new ArrayList<>()).add(nome);
-            mapaIdsCorretos.putIfAbsent(nomeLimpo, r.getId());
-        }
-
-        // escolhendo os nomes corretos entre as variações possíveis
-        for(String chave : mapaNomes.keySet()){
-            String nomeCorreto = definirNomeCorreto(mapaNomes.get(chave));
-            mapaNomesCorretos.put(chave, nomeCorreto);
-        }
-
-        // corrigindo os nomes e IDs para cada registro para permitir a unificação
-        for(Registro r : registros){
-            String nomeLimpo = removerAcentos(r.getNome());
-            r.setNome(mapaNomesCorretos.get(nomeLimpo));
-            r.setId(mapaIdsCorretos.get(nomeLimpo));
-        }
-
-        return registros.stream().
-                distinct().
-                toList();
-    }
-
-
-    // Caso 2: Sobrenome + Iniciais dos nomes
-   /*
-        Ocorre quando há variações na representação do nome do autor que combinam o sobrenome principal
-        com as iniciais dos prenomes (abreviações com ou sem pontos, ordenadas antes ou depois do sobrenome).
-        A unificação identifica a equivalência e adota o nome completo como o padrão-ouro.
-    */
-
+    /**
+     * Caso 2: Unifica variações que misturam o sobrenome com as iniciais dos prenomes
+     * (ex: "Seabra A. M." -> "Ana de Mattos Seabra"). Adota o nome completo como padrão-ouro.
+     *
+     * @param registros A lista de registros.
+     * @return A lista de registros com os nomes abreviados unificados (sem deduplicação).
+     */
     public List<Registro> normalizarSobrenomeIniciais(List<Registro> registros) {
+        for (Registro r : registros) {
+            r.setNome(padronizarNomeBasico(r.getNome()));
+        }
+
         for (int i = 0; i < registros.size(); i++) {
             for (int j = 0; j < registros.size(); j++) {
                 if (i != j) {
@@ -108,96 +127,199 @@ public class Curador {
                         if (ehAbreviacao(r1.getNome(), r2.getNome())) {
                             // Se for abreviação, padroniza r2 com o nome de r1
                             r2.setNome(r1.getNome());
+
+                            // Adota o menor ID entre os dois registros para preservar o menor ID
+                            String menorId = obterMenorId(r1.getId(), r2.getId());
+                            r1.setId(menorId);
+                            r2.setId(menorId);
                         }
                     }
                 }
             }
         }
+        return registros;
+    }
+
+    /**
+     * Caso 4: Unifica registros que possuem as iniciais dos prenomes agrupadas ao sobrenome
+     * (ex: "VC Junior" -> "Vanilda Cristina Junior"). Prefere a versão completa do nome.
+     *
+     * @param registros A lista de registros.
+     * @return A lista de registros com as iniciais agrupadas unificadas (sem deduplicação).
+     */
+    public List<Registro> unificarIniciaisAgrupadas(List<Registro> registros) {
+        for (int i = 0; i < registros.size(); i++) {
+            for (int j = 0; j < registros.size(); j++) {
+                if (i != j) {
+                    Registro r1 = registros.get(i);
+                    Registro r2 = registros.get(j);
+
+                    if (r1.getNome().length() > r2.getNome().length()) {
+                        if (saoMesmaPessoaIniciais(r1.getNome(), r2.getNome())) {
+                            r2.setNome(r1.getNome());
+                            
+                            // Adota o menor ID entre os dois registros para preservar o menor ID
+                            String menorId = obterMenorId(r1.getId(), r2.getId());
+                            r1.setId(menorId);
+                            r2.setId(menorId);
+                        }
+                    }
+                }
+            }
+        }
+        return registros;
+    }
+
+    /**
+     * Caso 5: IDs diferentes para o mesmo autor.
+     * Mapeia todos os IDs para o ID de menor valor numérico associado àquele autor e realiza a deduplicação.
+     *
+     * @param registros A lista de registros.
+     * @return A lista de registros unificada e livre de duplicatas.
+     */
+    public List<Registro> normalizarIdsDuplicados(List<Registro> registros) {
+        // Agrupa IDs associados a cada nome
+        HashMap<String, List<String>> mapaId = new HashMap<>();
+        for (Registro r : registros) {
+            String nome = r.getNome();
+            mapaId.computeIfAbsent(nome, k -> new ArrayList<>()).add(r.getId());
+        }
+
+        // Associa o menor ID de cada grupo ao registro
+        HashMap<String, String> mapaMenorId = mapearMenorId(mapaId);
+        for (Registro r : registros) {
+            String chave = r.getNome();
+            String menorId = mapaMenorId.get(chave);
+            r.setId(menorId);
+        }
+
         return registros.stream().distinct().toList();
     }
 
-    private boolean ehAbreviacao(String nomeCompleto, String nomeAbreviado) {
-        // Limpa e prepara o nome longo (remove acentos e partículas comuns)
-        String nLongo = removerAcentos(nomeCompleto).toUpperCase()
-                .replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").trim();
-        nLongo = nLongo.replaceAll("\\s+", " "); // Normaliza espaços
-        
-        // remove acentos, pontos e espaços
-        String nCurto = removerAcentos(nomeAbreviado).toUpperCase()
-                .replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "")
-                .replace(".", "").replaceAll("\\s+", "");
+    // --- Métodos Auxiliares e Utilitários (Privados) ---
 
-        String[] partes = nLongo.split(" ");
-        if (partes.length < 2) return false;
-
-        // O último termo é tratado como o sobrenome principal
-        String sobrenome = partes[partes.length - 1];
-        
-        // Extrai a primeira letra dos demais nomes
-        StringBuilder iniciais = new StringBuilder();
-        for (int i = 0; i < partes.length - 1; i++) {
-            iniciais.append(partes[i].charAt(0));
-        }
-
-        // Monta os padrões possíveis sem espaços: "SOBRENOME + INICIAIS" ou "INICIAIS + SOBRENOME"
-        String padrao1 = sobrenome + iniciais.toString();
-        String padrao2 = iniciais.toString() + sobrenome;
-
-        return nCurto.equals(padrao1) || nCurto.equals(padrao2);
+    private String obterMenorId(String id1, String id2) {
+        long val1 = Long.parseLong(id1);
+        long val2 = Long.parseLong(id2);
+        return String.valueOf(Math.min(val1, val2));
     }
 
-    public HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId){
+    private String padronizarNomeBasico(String nome) {
+        String n = tratarFormatoVirgula(nome);
+        n = n.replaceAll("[´`’]", "'");
+        n = n.replaceAll("(?i)\\bSt'anna\\b", "Sant'anna");
+        n = n.replaceAll("(?i)\\bNoreira\\b", "Moreira");
+        return n;
+    }
+
+    private boolean saoMesmaGrafia(String nome1, String nome2) {
+        return obterChaveGrafia(nome1).equalsIgnoreCase(obterChaveGrafia(nome2));
+    }
+
+    private boolean saoMesmoNomeSemParticulas(String nome1, String nome2) {
+        return obterChaveParticulasEPonto(nome1).equalsIgnoreCase(obterChaveParticulasEPonto(nome2));
+    }
+
+    private String tratarFormatoVirgula(String nome) {
+        if (nome.contains(",")) {
+            String[] partes = nome.split(",");
+            if (partes.length == 2) {
+                return partes[1].trim() + " " + partes[0].trim();
+            }
+        }
+        return nome;
+    }
+
+    private String obterChaveGrafia(String palavra) {
+        String resultado = palavra.replaceAll("[´`’]", "'");
+        resultado = Normalizer.normalize(resultado, Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
+        resultado = resultado.replaceAll("\\s+", " ").trim();
+        return resultado;
+    }
+
+    private String obterChaveParticulasEPonto(String palavra) {
+        String resultado = obterChaveGrafia(palavra);
+        resultado = resultado.replaceAll("\\.", "");
+        resultado = resultado.replaceAll("(?i)\\b(de|do|da|dos|das)\\b", "");
+        resultado = resultado.replaceAll("\\s+", " ").trim();
+        return resultado;
+    }
+
+    private boolean ehAbreviacao(String nomeCompleto, String nomeAbreviado) {
+        String[] longos = obterChaveParticulasEPonto(nomeCompleto).toUpperCase().split(" ");
+        String[] curtos = obterChaveParticulasEPonto(nomeAbreviado).toUpperCase().split(" ");
+
+        if (longos.length < 2 || curtos.length < 2) return false;
+
+        return compararTermos(longos, curtos) || compararTermos(longos, moverPrimeiroParaFim(curtos));
+    }
+
+    private boolean compararTermos(String[] longos, String[] curtos) {
+        if (longos.length == curtos.length) {
+            if (!longos[longos.length - 1].equals(curtos[curtos.length - 1])) {
+                return false;
+            }
+            for (int i = 0; i < longos.length - 1; i++) {
+                String l = longos[i];
+                String c = curtos[i];
+                if (!c.equals(l) && !(c.length() == 1 && c.charAt(0) == l.charAt(0))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (curtos.length == 2) {
+            String iniciaisAgrupadas = curtos[0];
+            String sobrenomeCurto = curtos[1];
+            String sobrenomeLongo = longos[longos.length - 1];
+
+            if (!sobrenomeCurto.equals(sobrenomeLongo)) {
+                return false;
+            }
+
+            if (iniciaisAgrupadas.length() != longos.length - 1) {
+                return false;
+            }
+
+            for (int i = 0; i < iniciaisAgrupadas.length(); i++) {
+                if (iniciaisAgrupadas.charAt(i) != longos[i].charAt(0)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private String[] moverPrimeiroParaFim(String[] termos) {
+        String[] inv = new String[termos.length];
+        System.arraycopy(termos, 1, inv, 0, termos.length - 1);
+        inv[termos.length - 1] = termos[0];
+        return inv;
+    }
+
+    private HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId) {
         HashMap<String, String> mapaMenorId = new HashMap<>();
 
-        for(String chave : mapaId.keySet()){
+        for (String chave : mapaId.keySet()) {
             List<String> ids = mapaId.get(chave);
             long menorId = Long.parseLong(ids.getFirst());
-            for(String idAtual : ids){
+            for (String idAtual : ids) {
                 long idTemp = Long.parseLong(idAtual);
-                if(idTemp < menorId) menorId = idTemp;
+                if (idTemp < menorId) menorId = idTemp;
             }
             String valor = String.valueOf(menorId);
             mapaMenorId.computeIfAbsent(chave, k -> valor);
         }
 
-        return  mapaMenorId;
-    }
-
-
-    // Caso 4
-    /* 
-        Há casos em que as iniciais do nome e dos primeiros sobrenomes são agrupadas restando
-        por extenso apenas o último nome a versão completa do nome deve ser preferida
-        em relação à versão com abreviações.
-    */
-    public List<Registro> unificarIniciaisAgrupadas(List<Registro> registros) {
-        List<Registro> resultado = new ArrayList<>();
-
-        for (Registro atual : registros) {
-            boolean duplicado = false;
-
-            for (int i = 0; i < resultado.size(); i++) {
-                Registro salvo = resultado.get(i);
-
-                if (saoMesmaPessoaIniciais(atual.getNome(), salvo.getNome())) {
-                    duplicado = true;
-                    if (atual.getNome().length() > salvo.getNome().length()) {
-                        resultado.set(i, atual);
-                    }
-                    break;
-                }
-            }
-
-            if (!duplicado) {
-                resultado.add(atual);
-            }
-        }
-        return resultado;
+        return mapaMenorId;
     }
 
     private boolean saoMesmaPessoaIniciais(String nomeA, String nomeB) {
-        String nA = removerAcentos(nomeA).toUpperCase().replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").replaceAll("\\s+", " ").trim();
-        String nB = removerAcentos(nomeB).toUpperCase().replaceAll("\\b(?:DE|DA|DO|DAS|DOS)\\b", "").replaceAll("\\s+", " ").trim();
+        String nA = obterChaveParticulasEPonto(nomeA).toUpperCase();
+        String nB = obterChaveParticulasEPonto(nomeB).toUpperCase();
 
         String[] partesA = nA.split("\\s+");
         String[] partesB = nB.split("\\s+");
@@ -227,31 +349,5 @@ public class Curador {
             }
         }
         return true;
-    }
-
-    // Caso 5: IDs diferentes para o mesmo autor
-    /*
-        Por fim, devido às diversas fontes de dados, os registros de publicação e autorias
-        duplicados, sendo um registro para cada fonte. Nesses casos, todos os registros
-        ser mapeados para o mesmo id, sendo o id de menor valor eleito para ser utilizado
-        deduplicação
-    */
-    public List<Registro> normalizarIdsDuplicados(List<Registro> registros){
-        // criando um mapa de (nome, lista<ids>)
-        HashMap<String, List<String>> mapaId = new HashMap<>();
-        for(Registro r : registros){
-            String nome = r.getNome();
-            mapaId.computeIfAbsent(nome, k -> new ArrayList<>()).add(r.getId());
-        }
-
-        // atribui o menor id para cada registro de uma mesma pessoa
-        HashMap<String, String> mapaMenorId = mapearMenorId(mapaId);
-        for(Registro r : registros){
-            String chave = r.getNome();
-            String menorId = mapaMenorId.get(chave);
-            r.setId(menorId);
-        }
-
-        return registros.stream().distinct().toList();
     }
 }
