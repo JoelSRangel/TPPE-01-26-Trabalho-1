@@ -36,9 +36,8 @@ public class Curador {
      * @return A lista de registros com a grafia unificada (sem deduplicação).
      */
     public List<Registro> normalizarGrafia(List<Registro> registros) {
-        for (Registro r : registros) {
-            r.setNome(padronizarNomeBasico(r.getNome()));
-        }
+
+        padronizarNomesDosRegistros(registros);
 
         for (int i = 0; i < registros.size(); i++) {
             for (int j = 0; j < registros.size(); j++) {
@@ -52,12 +51,8 @@ public class Curador {
                     // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
                     if (len1 > len2 || (len1 == len2 && i < j)) {
                         if (saoMesmaGrafia(r1.getNome(), r2.getNome())) {
-                            r2.setNome(r1.getNome());
-                            
-                            // Adota o menor ID entre os dois registros para preservar o menor ID
-                            String menorId = obterMenorId(r1.getId(), r2.getId());
-                            r1.setId(menorId);
-                            r2.setId(menorId);
+
+                            unificadorDeRegistros(r2, r1);
                         }
                     }
                 }
@@ -74,9 +69,8 @@ public class Curador {
      * @return A lista de registros com partículas e abreviações com ponto normalizadas (sem deduplicação).
      */
     public List<Registro> normalizarParticulasEPonto(List<Registro> registros) {
-        for (Registro r : registros) {
-            r.setNome(padronizarNomeBasico(r.getNome()));
-        }
+
+        padronizarNomesDosRegistros(registros);
 
         for (int i = 0; i < registros.size(); i++) {
             for (int j = 0; j < registros.size(); j++) {
@@ -84,20 +78,7 @@ public class Curador {
                     Registro r1 = registros.get(i);
                     Registro r2 = registros.get(j);
 
-                    int len1 = Normalizer.normalize(r1.getNome(), Normalizer.Form.NFKD).length();
-                    int len2 = Normalizer.normalize(r2.getNome(), Normalizer.Form.NFKD).length();
-
-                    // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
-                    if (len1 > len2 || (len1 == len2 && i < j)) {
-                        if (saoMesmoNomeSemParticulas(r1.getNome(), r2.getNome())) {
-                            r2.setNome(r1.getNome());
-
-                            // Adota o menor ID entre os dois registros para preservar o menor ID
-                            String menorId = obterMenorId(r1.getId(), r2.getId());
-                            r1.setId(menorId);
-                            r2.setId(menorId);
-                        }
-                    }
+                    DeduplicarRegistros(r1, r2, i, j);
                 }
             }
         }
@@ -112,9 +93,8 @@ public class Curador {
      * @return A lista de registros com os nomes abreviados unificados (sem deduplicação).
      */
     public List<Registro> normalizarSobrenomeIniciais(List<Registro> registros) {
-        for (Registro r : registros) {
-            r.setNome(padronizarNomeBasico(r.getNome()));
-        }
+
+        padronizarNomesDosRegistros(registros);
 
         for (int i = 0; i < registros.size(); i++) {
             for (int j = 0; j < registros.size(); j++) {
@@ -125,13 +105,8 @@ public class Curador {
                     // Compara apenas se r1 for maior que r2 (r1 = potencial nome completo)
                     if (r1.getNome().length() > r2.getNome().length()) {
                         if (ehAbreviacao(r1.getNome(), r2.getNome())) {
-                            // Se for abreviação, padroniza r2 com o nome de r1
-                            r2.setNome(r1.getNome());
 
-                            // Adota o menor ID entre os dois registros para preservar o menor ID
-                            String menorId = obterMenorId(r1.getId(), r2.getId());
-                            r1.setId(menorId);
-                            r2.setId(menorId);
+                            unificadorDeRegistros(r2, r1);
                         }
                     }
                 }
@@ -156,12 +131,8 @@ public class Curador {
 
                     if (r1.getNome().length() > r2.getNome().length()) {
                         if (saoMesmaPessoaIniciais(r1.getNome(), r2.getNome())) {
-                            r2.setNome(r1.getNome());
-                            
-                            // Adota o menor ID entre os dois registros para preservar o menor ID
-                            String menorId = obterMenorId(r1.getId(), r2.getId());
-                            r1.setId(menorId);
-                            r2.setId(menorId);
+
+                            unificadorDeRegistros(r2, r1);
                         }
                     }
                 }
@@ -194,6 +165,35 @@ public class Curador {
         }
 
         return registros.stream().distinct().toList();
+    }
+
+    // Métodos extraidos
+    private void padronizarNomesDosRegistros(List<Registro> registros) {
+        for (Registro r : registros) {
+            r.setNome(padronizarNomeBasico(r.getNome()));
+        }
+    }
+
+    private void unificadorDeRegistros(Registro r2, Registro r1) {
+        r2.setNome(r1.getNome());
+
+        // Adota o menor ID entre os dois registros para preservar o menor ID
+        String menorId = obterMenorId(r1.getId(), r2.getId());
+        r1.setId(menorId);
+        r2.setId(menorId);
+    }
+
+    private void DeduplicarRegistros(Registro r1, Registro r2, int i, int j) {
+        int len1 = Normalizer.normalize(r1.getNome(), Normalizer.Form.NFKD).length();
+        int len2 = Normalizer.normalize(r2.getNome(), Normalizer.Form.NFKD).length();
+
+        // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
+        if (len1 > len2 || (len1 == len2 && i < j)) {
+            if (saoMesmoNomeSemParticulas(r1.getNome(), r2.getNome())) {
+
+                unificadorDeRegistros(r2, r1);
+            }
+        }
     }
 
     // --- Métodos Auxiliares e Utilitários (Privados) ---
