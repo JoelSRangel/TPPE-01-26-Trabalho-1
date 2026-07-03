@@ -50,7 +50,7 @@ public class Curador {
 
                     // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
                     if (len1 > len2 || (len1 == len2 && i < j)) {
-                        if (saoMesmaGrafia(r1.getNome(), r2.getNome())) {
+                        if (NormalizadorNome.saoMesmaGrafia(r1.getNome(), r2.getNome())) {
 
                             unificadorDeRegistros(r2, r1);
                         }
@@ -104,7 +104,7 @@ public class Curador {
                     
                     // Compara apenas se r1 for maior que r2 (r1 = potencial nome completo)
                     if (r1.getNome().length() > r2.getNome().length()) {
-                        if (ehAbreviacao(r1.getNome(), r2.getNome())) {
+                        if (NormalizadorNome.ehAbreviacao(r1.getNome(), r2.getNome())) {
 
                             unificadorDeRegistros(r2, r1);
                         }
@@ -130,7 +130,7 @@ public class Curador {
                     Registro r2 = registros.get(j);
 
                     if (r1.getNome().length() > r2.getNome().length()) {
-                        if (saoMesmaPessoaIniciais(r1.getNome(), r2.getNome())) {
+                        if (NormalizadorNome.saoMesmaPessoaIniciais(r1.getNome(), r2.getNome())) {
 
                             unificadorDeRegistros(r2, r1);
                         }
@@ -167,10 +167,12 @@ public class Curador {
         return registros.stream().distinct().toList();
     }
 
-    // Métodos extraidos
+    // --- Métodos Auxiliares e Utilitários (Privados) ---
+
+    // ----------------------------------- Métodos extraidos ----------------------------------
     private void padronizarNomesDosRegistros(List<Registro> registros) {
         for (Registro r : registros) {
-            r.setNome(padronizarNomeBasico(r.getNome()));
+            r.setNome(NormalizadorNome.padronizarNomeBasico(r.getNome()));
         }
     }
 
@@ -189,115 +191,18 @@ public class Curador {
 
         // Se r1 for mais completo ou em caso de empate, substitui r2 por r1
         if (len1 > len2 || (len1 == len2 && i < j)) {
-            if (saoMesmoNomeSemParticulas(r1.getNome(), r2.getNome())) {
+            if (NormalizadorNome.saoMesmoNomeSemParticulas(r1.getNome(), r2.getNome())) {
 
                 unificadorDeRegistros(r2, r1);
             }
         }
     }
-
-    // --- Métodos Auxiliares e Utilitários (Privados) ---
+    // ----------------------------------------------------------------------------------------
 
     private String obterMenorId(String id1, String id2) {
         long val1 = Long.parseLong(id1);
         long val2 = Long.parseLong(id2);
         return String.valueOf(Math.min(val1, val2));
-    }
-
-    private String padronizarNomeBasico(String nome) {
-        String n = tratarFormatoVirgula(nome);
-        n = n.replaceAll("[´`’]", "'");
-        n = n.replaceAll("(?i)\\bSt'anna\\b", "Sant'anna");
-        n = n.replaceAll("(?i)\\bNoreira\\b", "Moreira");
-        return n;
-    }
-
-    private boolean saoMesmaGrafia(String nome1, String nome2) {
-        return obterChaveGrafia(nome1).equalsIgnoreCase(obterChaveGrafia(nome2));
-    }
-
-    private boolean saoMesmoNomeSemParticulas(String nome1, String nome2) {
-        return obterChaveParticulasEPonto(nome1).equalsIgnoreCase(obterChaveParticulasEPonto(nome2));
-    }
-
-    private String tratarFormatoVirgula(String nome) {
-        if (nome.contains(",")) {
-            String[] partes = nome.split(",");
-            if (partes.length == 2) {
-                return partes[1].trim() + " " + partes[0].trim();
-            }
-        }
-        return nome;
-    }
-
-    private String obterChaveGrafia(String palavra) {
-        String resultado = palavra.replaceAll("[´`’]", "'");
-        resultado = Normalizer.normalize(resultado, Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
-        resultado = resultado.replaceAll("\\s+", " ").trim();
-        return resultado;
-    }
-
-    private String obterChaveParticulasEPonto(String palavra) {
-        String resultado = obterChaveGrafia(palavra);
-        resultado = resultado.replaceAll("\\.", "");
-        resultado = resultado.replaceAll("(?i)\\b(de|do|da|dos|das)\\b", "");
-        resultado = resultado.replaceAll("\\s+", " ").trim();
-        return resultado;
-    }
-
-    private boolean ehAbreviacao(String nomeCompleto, String nomeAbreviado) {
-        String[] longos = obterChaveParticulasEPonto(nomeCompleto).toUpperCase().split(" ");
-        String[] curtos = obterChaveParticulasEPonto(nomeAbreviado).toUpperCase().split(" ");
-
-        if (longos.length < 2 || curtos.length < 2) return false;
-
-        return compararTermos(longos, curtos) || compararTermos(longos, moverPrimeiroParaFim(curtos));
-    }
-
-    private boolean compararTermos(String[] longos, String[] curtos) {
-        if (longos.length == curtos.length) {
-            if (!longos[longos.length - 1].equals(curtos[curtos.length - 1])) {
-                return false;
-            }
-            for (int i = 0; i < longos.length - 1; i++) {
-                String l = longos[i];
-                String c = curtos[i];
-                if (!c.equals(l) && !(c.length() == 1 && c.charAt(0) == l.charAt(0))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        if (curtos.length == 2) {
-            String iniciaisAgrupadas = curtos[0];
-            String sobrenomeCurto = curtos[1];
-            String sobrenomeLongo = longos[longos.length - 1];
-
-            if (!sobrenomeCurto.equals(sobrenomeLongo)) {
-                return false;
-            }
-
-            if (iniciaisAgrupadas.length() != longos.length - 1) {
-                return false;
-            }
-
-            for (int i = 0; i < iniciaisAgrupadas.length(); i++) {
-                if (iniciaisAgrupadas.charAt(i) != longos[i].charAt(0)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    private String[] moverPrimeiroParaFim(String[] termos) {
-        String[] inv = new String[termos.length];
-        System.arraycopy(termos, 1, inv, 0, termos.length - 1);
-        inv[termos.length - 1] = termos[0];
-        return inv;
     }
 
     private HashMap<String, String> mapearMenorId(HashMap<String, List<String>> mapaId) {
@@ -315,39 +220,5 @@ public class Curador {
         }
 
         return mapaMenorId;
-    }
-
-    private boolean saoMesmaPessoaIniciais(String nomeA, String nomeB) {
-        String nA = obterChaveParticulasEPonto(nomeA).toUpperCase();
-        String nB = obterChaveParticulasEPonto(nomeB).toUpperCase();
-
-        String[] partesA = nA.split("\\s+");
-        String[] partesB = nB.split("\\s+");
-
-        if (partesA.length < 2 || partesB.length < 2) return false;
-
-        String sobrenomeA = partesA[partesA.length - 1];
-        String sobrenomeB = partesB[partesB.length - 1];
-        if (!sobrenomeA.equals(sobrenomeB)) return false;
-
-        if (partesA.length == 2 && partesA[0].length() > 1) {
-            return checarIniciaisDoNome(partesA[0], partesB);
-        }
-        if (partesB.length == 2 && partesB[0].length() > 1) {
-            return checarIniciaisDoNome(partesB[0], partesA);
-        }
-
-        return false;
-    }
-
-    private boolean checarIniciaisDoNome(String blocoIniciais, String[] nomeCompleto) {
-        if (blocoIniciais.length() != nomeCompleto.length - 1) return false;
-
-        for (int i = 0; i < blocoIniciais.length(); i++) {
-            if (blocoIniciais.charAt(i) != nomeCompleto[i].charAt(0)) {
-                return false;
-            }
-        }
-        return true;
     }
 }
