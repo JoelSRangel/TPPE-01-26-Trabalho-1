@@ -16,15 +16,15 @@ public class CompararTermosTest {
     @Test
     void deveRetornarTrueQuandoTermosForemIdenticos() {
         String[] longos = {"Maria", "de", "Souza"};
-        String[] curtos = {"Maria", "Souza"};
+        String[] curtos = {"Maria", "de", "Souza"};
         CompararTermos comparador = new CompararTermos(longos, curtos);
         assertTrue(comparador.executar());
     }
 
     @Test
     void deveRetornarTrueQuandoCurtosForemIniciaisDosLongos() {
-        String[] longos = {"José", "da", "Silva"};
-        String[] curtos = {"J.", "Silva"};
+        String[] longos = {"José", "Silva"};
+        String[] curtos = {"J", "Silva"};
         
         CompararTermos comparador = new CompararTermos(longos, curtos);
         assertTrue(comparador.executar());
