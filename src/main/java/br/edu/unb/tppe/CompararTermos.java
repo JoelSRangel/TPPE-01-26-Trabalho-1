@@ -5,11 +5,24 @@ public class CompararTermos {
     private final String[] curtos;
 
     public CompararTermos(String[] longos, String[] curtos) {
+
+        if (longos == null || curtos == null) {
+            throw new IllegalArgumentException("Os arrays de termos não podem ser nulos.");
+        }
+        if (longos.length == 0 || curtos.length == 0) {
+            throw new IllegalArgumentException("Os arrays de termos não podem estar vazios.");
+        }
+
         this.longos = longos;
         this.curtos = curtos;
+        
     }
 
     public boolean executar() {
+
+        int qtdLongos = longos.length;
+        int qtdCurtos = curtos.length;
+
         if (longos.length == curtos.length) {
             if (!longos[longos.length - 1].equals(curtos[curtos.length - 1])) {
                 return false;
@@ -44,6 +57,8 @@ public class CompararTermos {
             }
             return true;
         }
+
+        assert qtdLongos != qtdCurtos && qtdCurtos != 2 : "Erro de fluxo lógico no algoritmo";
 
         return false;
     }
