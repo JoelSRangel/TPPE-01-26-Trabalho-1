@@ -23,30 +23,38 @@ public class CompararTermos {
         int qtdLongos = longos.length;
         int qtdCurtos = curtos.length;
 
-        if (longos.length == curtos.length) {
-            if (!longos[longos.length - 1].equals(curtos[curtos.length - 1])) {
+        if (qtdLongos == qtdCurtos) {
+            String sobrenomeLongo = longos[qtdLongos - 1];
+            String sobrenomeCurto = curtos[qtdCurtos - 1];
+
+            if (!sobrenomeLongo.equals(sobrenomeCurto)) {
                 return false;
             }
-            for (int i = 0; i < longos.length - 1; i++) {
+
+            for (int i = 0; i < qtdLongos - 1; i++) {
                 String l = longos[i];
                 String c = curtos[i];
-                if (!c.equals(l) && !(c.length() == 1 && c.charAt(0) == l.charAt(0))) {
+                
+                boolean saoIdenticos = c.equals(l);
+                boolean ehInicialValida = (c.length() == 1 && c.charAt(0) == l.charAt(0));
+
+                if (!saoIdenticos && !ehInicialValida) {
                     return false;
                 }
             }
             return true;
         }
 
-        if (curtos.length == 2) {
+        if (qtdCurtos == 2) {
             String iniciaisAgrupadas = curtos[0];
             String sobrenomeCurto = curtos[1];
-            String sobrenomeLongo = longos[longos.length - 1];
+            String sobrenomeLongo = longos[qtdLongos - 1];
 
             if (!sobrenomeCurto.equals(sobrenomeLongo)) {
                 return false;
             }
 
-            if (iniciaisAgrupadas.length() != longos.length - 1) {
+            if (iniciaisAgrupadas.length() != qtdLongos - 1) {
                 return false;
             }
 
@@ -59,7 +67,7 @@ public class CompararTermos {
         }
 
         assert qtdLongos != qtdCurtos && qtdCurtos != 2 : "Erro de fluxo lógico no algoritmo";
-
+        
         return false;
     }
 }
